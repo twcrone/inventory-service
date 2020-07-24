@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,8 +18,30 @@ type Product struct {
 	surname string
 }
 
-var productList = []Product{}
+var productList []Product
 var nextId = 1
+
+func init() {
+	var data = `[
+    {
+        "Id": 1,
+        "Message": "Hello",
+        "Age": 50,
+        "Name": "Todd"
+    },
+    {
+        "Id": 2,
+        "Message": "Second one",
+        "Age": 22,
+        "Name": "Number Two"
+    }
+]`
+
+	err := json.Unmarshal([]byte(data), &productList)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 func productHandler(w http.ResponseWriter, r *http.Request) {
 	urlPathSegments := strings.Split(r.URL.Path, "product/")
@@ -55,6 +78,7 @@ func productHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		product = &updatedProduct
+		fmt.Println("Updating product at index ", listItemIndex)
 		productList[listItemIndex] = *product
 		w.WriteHeader(http.StatusOK)
 	}
@@ -62,14 +86,16 @@ func productHandler(w http.ResponseWriter, r *http.Request) {
 
 func findProductById(id int) (*Product, int) {
 	var found *Product = nil
+	var index = -1
 	for i := range productList {
 		product := productList[i]
 		if product.Id == id {
 			found = &product
+			index = i
 			break
 		}
 	}
-	return found, 0
+	return found, index
 }
 
 func productsHandler(w http.ResponseWriter, r *http.Request) {
