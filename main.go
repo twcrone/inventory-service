@@ -1,20 +1,47 @@
 package main
 
-import "net/http"
+import (
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+)
 
-type fooHandler struct {
-	Message string
+type Product struct {
+	Id      int    `json: "id"`
+	Message string `json: "message"`
+	Age     int    `json: "age"`
+	Name    string `json: "name"`
+	surname string
 }
 
-func (f *fooHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(f.Message))
+var productList = []Product{}
+var nextId = 1
+
+func productsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		productsJson, err := json.Marshal(productList)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(productsJson)
+	case http.MethodPost:
+		var newProduct Product
+		bodyBytes, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+		err = json.Unmarshal(bodyBytes, &newProduct)
+		newProduct.Id = nextId
+		nextId++
+		productList = append(productList, newProduct)
+		w.WriteHeader(http.StatusCreated)
+	}
 }
 
-func barHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("bar called"))
-}
 func main() {
-	http.Handle("/foo", &fooHandler{ Message: "foo called" })
-	http.HandleFunc("/bar", barHandler)
+	http.HandleFunc("/products", productsHandler)
 	http.ListenAndServe(":5000", nil)
 }
