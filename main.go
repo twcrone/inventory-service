@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/twcrone/inventoryservice/database"
+	"github.com/twcrone/inventoryservice/service"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,18 +14,16 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type Product struct {
-	Id      int    `json: "id"`
-	Message string `json: "message"`
-	Age     int    `json: "age"`
-	Name    string `json: "name"`
-	surname string
+type Note struct {
+	Id   int    `json: "id"`
+	Note string `json: "message"`
 }
 
-var productList []Product
+var productList []Note
 var nextId = 1
 
 func init() {
+	database.SetupDatabase()
 	var data = `[
     {
         "Id": 1,
@@ -68,7 +68,7 @@ func productHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(productJson)
 	case http.MethodPut:
-		var updatedProduct Product
+		var updatedProduct Note
 		bodyBytes, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -86,8 +86,8 @@ func productHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func findProductById(id int) (*Product, int) {
-	var found *Product = nil
+func findProductById(id int) (*Note, int) {
+	var found *Note = nil
 	var index = -1
 	for i := range productList {
 		product := productList[i]
@@ -98,6 +98,19 @@ func findProductById(id int) (*Product, int) {
 		}
 	}
 	return found, index
+}
+
+func notesHandler(w http.ResponseWriter, r *http.Request) {
+	//	switch r.Method {
+	//	case http.MethodGet:
+	notes := service.GetAllNotes()
+	notesJson, err := json.Marshal(notes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(notesJson)
+	//	}
 }
 
 func productsHandler(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +124,7 @@ func productsHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(productsJson)
 	case http.MethodPost:
-		var newProduct Product
+		var newProduct Note
 		bodyBytes, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -125,6 +138,7 @@ func productsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	http.HandleFunc("/notes", notesHandler)
 	http.HandleFunc("/product/", productHandler)
 	http.HandleFunc("/products", productsHandler)
 	http.ListenAndServe(":5000", nil)
