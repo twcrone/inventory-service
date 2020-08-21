@@ -1,16 +1,18 @@
 package service
 
-import "github.com/twcrone/inventoryservice/database"
+import (
+	"github.com/twcrone/inventoryservice/database"
+)
 
 type Note struct {
-	Id   int    `json: "id"`
-	Note string `json: "message"`
+	Id   int    `json:"id"`
+	Note string `json:"message"`
 }
 
-func GetAllNotes() []Note {
+func GetAllNotes() ([]Note, error) {
 	results, err := database.DbConn.Query(`select id, note from notes`)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer results.Close()
 	notes := make([]Note, 0)
@@ -19,5 +21,5 @@ func GetAllNotes() []Note {
 		_ = results.Scan(&note.Id, &note.Note)
 		notes = append(notes, note)
 	}
-	return notes
+	return notes, nil
 }

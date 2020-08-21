@@ -103,7 +103,10 @@ func findProductById(id int) (*Note, int) {
 func notesHandler(w http.ResponseWriter, r *http.Request) {
 	//	switch r.Method {
 	//	case http.MethodGet:
-	notes := service.GetAllNotes()
+	notes, err := service.GetAllNotes()
+	if err != nil {
+		log.Fatal(err)
+	}
 	notesJson, err := json.Marshal(notes)
 	if err != nil {
 		log.Fatal(err)
